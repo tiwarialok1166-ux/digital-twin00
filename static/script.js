@@ -1,77 +1,51 @@
-// Import GLTFLoader from Three.js examples (works with type="module")
-import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js";
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.0/examples/jsm/loaders/GLTFLoader.js';
 
 // Scene setup
-const container = document.getElementById("model-container");
+const container = document.getElementById('model-container');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
+scene.background = new THREE.Color(0xf0f0f0);
+
+const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+camera.position.set(2, 2, 5);
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(container.clientWidth, container.clientHeight);
 container.appendChild(renderer.domElement);
 
-// Lighting
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5, 5, 5).normalize();
+// Light
+const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+light.position.set(0, 20, 0);
 scene.add(light);
 
-// Load GLB model
+// GLTF Model Loader
 const loader = new GLTFLoader();
-loader.load(
-  "/static/model.glb",
-  (gltf) => {
-    scene.add(gltf.scene);
-    gltf.scene.scale.set(0.5, 0.5, 0.5);
-    gltf.scene.position.set(0, 0, 0);
-  },
-  undefined,
-  (error) => {
-    console.error("Error loading model:", error);
-  }
-);
+loader.load('/static/machine.glb', (gltf) => {
+  scene.add(gltf.scene);
+}, undefined, (error) => {
+  console.error("Error loading GLTF:", error);
+});
 
-camera.position.z = 5;
-
-// Animation loop
+// Render loop
 function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
 }
 animate();
 
-// --- API Fetchers ---
-// Fetch machine specs
-async function loadSpecs() {
-  try {
-    let res = await fetch("/api/specs");
-    let data = await res.json();
-    document.getElementById("specs").innerHTML =
-      "<h3>📑 Machine Specs</h3><pre>" +
-      JSON.stringify(data, null, 2) +
-      "</pre>";
-  } catch (err) {
-    console.error("Error fetching specs:", err);
-  }
-}
+// Fake sensor data fetch (update dynamically)
+function updateSensorData() {
+  document.getElementById('specs').innerHTML = `
+    <h3>⚙ Machine Specs</h3>
+    <p>Power: 200 kW</p>
+    <p>RPM: 15,000</p>
+  `;
 
-// Fetch live sensor data
-async function loadSensorData() {
-  try {
-    let res = await fetch("/api/sensor-data");
-    let data = await res.json();
-    document.getElementById("sensor-data").innerHTML =
-      "<h3>📊 Sensor Data</h3><pre>" +
-      JSON.stringify(data, null, 2) +
-      "</pre>";
-  } catch (err) {
-    console.error("Error fetching sensor data:", err);
-  }
+  document.getElementById('sensor-data').innerHTML = `
+    <h3>📊 Live Sensor Data</h3>
+    <p>Temperature: ${(20 + Math.random() * 10).toFixed(1)} °C</p>
+    <p>Vibration: ${(Math.random() * 5).toFixed(2)} mm/s</p>
+    <p>Torque: ${(50 + Math.random() * 20).toFixed(2)} Nm</p>
+  `;
 }
-
-// Refresh data periodically
-setInterval(loadSensorData, 3000);
-loadSpecs();
+setInterval(updateSensorData, 2000);
