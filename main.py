@@ -39,9 +39,9 @@ def fetch_sensor_data():
 def dashboard():
     return render_template("index.html")
 
-@app.route("/api/specs")
+@app.route("/api/specs.json")
 def api_specs():
-    return jsonify(load_specs())
+    return jsonify(load_specs.json())
 
 @app.route("/api/sensors")
 def api_sensors():
@@ -49,3 +49,4 @@ def api_sensors():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
