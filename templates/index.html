@@ -1,33 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <title>Machine Dashboard</title>
-  
-  <!-- Load Three.js -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
-  
-  <!-- Load GLTFLoader (from examples/jsm/) -->
-  <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.module.js';
-    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.0/examples/jsm/loaders/GLTFLoader.js';
-    window.THREE = THREE;        // Expose THREE globally
-    window.GLTFLoader = GLTFLoader;  // Expose loader globally
-  </script>
-
-  <link rel="stylesheet" href="/static/style.css">
   <style>
-    body { margin: 0; background: #f4f4f4; font-family: Arial, sans-serif; text-align: center; }
-    #model-container { width: 100%; height: 500px; }
-    #specs, #sensor-data { margin: 15px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+    body { font-family: Arial, sans-serif; display: flex; gap: 20px; }
+    #model { width: 50%; height: 500px; border: 1px solid #ccc; }
+    #info { width: 50%; }
+    .card { padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
-  <h2>🚀 Machine Dashboard</h2>
-  <div id="model-container"></div>
-  <div id="specs">⚙ Machine Specs Loading...</div>
-  <div id="sensor-data">📊 Sensor Data Loading...</div>
-  
-  <script src="/static/script.js" type="module"></script>
+  <div id="model"></div>
+  <div id="info">
+    <div class="card">
+      <h2>Machine Specs</h2>
+      <pre id="specs">Loading specs...</pre>
+    </div>
+    <div class="card">
+      <h2>Sensor Data</h2>
+      <pre id="sensors">Loading sensors...</pre>
+    </div>
+  </div>
 </body>
 </html>
