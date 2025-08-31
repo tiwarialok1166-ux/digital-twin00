@@ -41,7 +41,7 @@ def dashboard():
 
 @app.route("/api/specs.json")
 def api_specs():
-    return jsonify(load_specs.json())
+    return jsonify(load_specs())
 
 @app.route("/api/sensors")
 def api_sensors():
@@ -49,4 +49,5 @@ def api_sensors():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
