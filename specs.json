@@ -1,0 +1,106 @@
+{
+  "model": "Groschopp PM10816-PL6216i",
+  "type": "brushed_pm_dc_gear_motor",
+  "specs": {
+    "nominal_rpm": 60,
+    "bearing_types_models": "sealed_ball_bearings_output_ball_bearing_motor",
+    "rated_power_w": 90.5,
+    "rated_voltage_v": 12,
+    "rated_current_a": 15.0,
+    "frequency_hz": null,
+    "number_of_poles": null,
+    "efficiency_percent": 50,
+    "shaft_diameter_mm": 16,
+    "frame_size_mm": 108,
+    "rotor_type": "brushed_permanent_magnet",
+    "cooling_type": "natural_convection",
+    "operating_temperature_min_c": -10,
+    "operating_temperature_max_c": 40,
+    "insulation_class": "class_b",
+    "enclosure_type": "ip44",
+
+    "electrical": {
+      "rated_input_power_w": 180,
+      "no_load_speed_motor_rpm": 5729,
+      "no_load_current_a": 1.8,
+      "armature_resistance_ohm": 0.30,
+      "armature_inductance_mh": 0.50,
+      "back_emf_constant_ke_vs_per_rad": 0.020,
+      "back_emf_constant_ke_v_per_krpm": 2.09,
+      "torque_constant_kt_nm_per_a": 0.020,
+      "stall_current_a": 40.0,
+      "electrical_time_constant_ms": 1.67
+    },
+
+    "mechanical_output": {
+      "nominal_torque_nm": 14.4,
+      "nominal_torque_in_lb": 127.4,
+      "stall_torque_output_nm": 48.0,
+      "backlash_deg": 1.5,
+      "shaft_length_mm": 40,
+      "keyway_width_mm": 5,
+      "max_radial_load_n": 800,
+      "max_axial_load_n": 400,
+      "noise_level_dba": 65
+    },
+
+    "motor_side": {
+      "motor_speed_at_rated_rpm": 3580,
+      "motor_torque_at_rated_nm": 0.300,
+      "rotor_inertia_kg_m2": 0.00004,
+      "mechanical_time_constant_s": 0.030,
+      "brush_type": "carbon"
+    },
+
+    "gearhead": {
+      "gear_type": "planetary",
+      "gear_ratio": "60:1",
+      "gear_efficiency_percent": 80,
+      "gear_stages": 3,
+      "gear_lubrication": "grease_lifetime"
+    },
+
+    "thermal": {
+      "max_ambient_temperature_c": 40,
+      "temperature_rise_at_rated_c": 60,
+      "thermal_time_constant_min": 25
+    },
+
+    "mechanical_package": {
+      "overall_length_mm": 216,
+      "weight_kg": 7.0,
+      "mounting": "any_orientation"
+    },
+
+    "duty_and_control": {
+      "duty_type": "s1_continuous",
+      "feedback_device": "none",
+      "thermal_protection": "none"
+    },
+
+    "efficiency_breakdown": {
+      "overall_efficiency_percent": 50.3,
+      "copper_loss_w": 67.5,
+      "other_losses_w": 22.0
+    },
+
+    "derived_consistency": {
+      "check_voltage_balance": "ok",
+      "voltage_balance_equation": "V ≈ Ke*ω + I*R",
+      "voltage_balance_detail": "12.0 ≈ 7.85 + 4.50",
+      "check_torque_balance": "ok",
+      "torque_balance_equation": "T_out ≈ Kt*I*ratio*η",
+      "torque_balance_detail": "14.4 ≈ 0.02*15*60*0.8",
+      "check_power": "ok",
+      "power_equation": "P_out ≈ T_out * ω_out",
+      "power_detail": "90.5 ≈ 14.4 * 6.283"
+    }
+  },
+  "assumptions": [
+    "12v_variant_selected_other_voltages_exist",
+    "planetary_gearhead_with_60_to_1_ratio_to_meet_60rpm_at_rated_load",
+    "gear_efficiency_80_percent_typical_for_multi_stage_planetary",
+    "bearings_ip_rating_and_dimensions_inferred_from_vendor_family"
+  ],
+  "last_updated": "2025-08-31T11:51:00+05:30"
+}
