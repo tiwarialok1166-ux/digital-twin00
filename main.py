@@ -1,36 +1,46 @@
-from flask import Flask, render_template, send_from_directory, jsonify
-import requests, os, json
+from flask import Flask, jsonify, render_template, send_from_directory
+import pandas as pd
+import requests
+import os
 
 app = Flask(__name__)
 
-# Path to specs.json
-SPECS_FILE = "specs.json"
+# URL of your live data (returns HTML table)
+LIVE_DATA_URL = "https://dataset1st.onrender.com/dashboard"
 
 @app.route("/")
-def dashboard():
+def index():
     return render_template("index.html")
 
-# Proxy sensor API (your Render live API)
-@app.route("/api/sensor-data")
-def get_sensor_data():
+@app.route("/sensor-data")
+def sensor_data():
     try:
-        res = requests.get("https://dataset1st.onrender.com/dashboard", timeout=5)
-        return jsonify(res.json())
+        # Read HTML table into pandas DataFrame
+        tables = pd.read_html(LIVE_DATA_URL)
+        if len(tables) > 0:
+            df = tables[0]  # assuming first table is the sensor data
+            data = df.to_dict(orient="records")  # convert to list of dicts
+            return jsonify(data)
+        else:
+            return jsonify({"error": "No tables found in the page"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Serve machine specs.json
-@app.route("/api/specs")
-def get_specs():
-    if os.path.exists(SPECS_FILE):
-        with open(SPECS_FILE) as f:
-            return jsonify(json.load(f))
+@app.route("/specs")
+def specs():
+    # Serve machine specs from static/specs.json
+    specs_path = os.path.join(app.static_folder, "specs.json")
+    if os.path.exists(specs_path):
+        return send_from_directory(app.static_folder, "specs.json")
     return jsonify({"error": "Specs file not found"}), 404
 
-# Serve static model
-@app.route("/model.glb")
-def get_model():
-    return send_from_directory("static", "model.glb")
+@app.route("/model")
+def model():
+    # Serve your 3D model file from static folder
+    model_path = os.path.join(app.static_folder, "model.glb")
+    if os.path.exists(model_path):
+        return send_from_directory(app.static_folder, "model.glb")
+    return jsonify({"error": "3D model not found"}), 404
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)
