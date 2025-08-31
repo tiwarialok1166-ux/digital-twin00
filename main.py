@@ -1,49 +1,51 @@
-from flask import Flask, jsonify, render_template, send_from_directory
+from flask import Flask, render_template, jsonify
 import requests
 from bs4 import BeautifulSoup
+import json
 import os
 
 app = Flask(__name__)
 
-# ---------- ROUTE TO SCRAPE LIVE DATA ----------
-@app.route("/live-data")
-def live_data():
+# Load machine specs from local JSON file
+def load_specs():
+    try:
+        with open("static/specs.json", "r") as f:
+            return json.load(f)
+    except Exception as e:
+        return {"error": str(e)}
+
+# Scrape sensor data from external HTML table
+def fetch_sensor_data():
     url = "https://dataset1st.onrender.com/dashboard"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "html.parser")
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
 
-    # Find the table
-    table = soup.find("table")
-    data = []
+        table = soup.find("table")
+        data = []
 
-    if table:
-        headers = [th.text.strip() for th in table.find_all("th")]
-        for row in table.find_all("tr")[1:]:
-            cells = row.find_all("td")
-            if len(cells) == len(headers):
-                row_data = {headers[i]: cells[i].text.strip() for i in range(len(headers))}
-                data.append(row_data)
+        if table:
+            headers = [th.get_text(strip=True) for th in table.find_all("th")]
+            for row in table.find_all("tr")[1:]:
+                cells = [td.get_text(strip=True) for td in row.find_all("td")]
+                if cells:
+                    data.append(dict(zip(headers, cells)))
+        return data
+    except Exception as e:
+        return {"error": str(e)}
 
-    return jsonify(data)
-
-
-# ---------- ROUTE TO SERVE MACHINE SPECS ----------
-@app.route("/specs")
-def specs():
-    return send_from_directory("static", "specs.json")
-
-
-# ---------- ROUTE TO SERVE MODEL ----------
-@app.route("/model/<path:filename>")
-def model(filename):
-    return send_from_directory("static/model.glb", filename)
-
-
-# ---------- MAIN DASHBOARD ----------
 @app.route("/")
-def index():
+def dashboard():
     return render_template("index.html")
 
+@app.route("/api/specs")
+def api_specs():
+    return jsonify(load_specs())
+
+@app.route("/api/sensors")
+def api_sensors():
+    return jsonify(fetch_sensor_data())
 
 if __name__ == "__main__":
     app.run(debug=True)
