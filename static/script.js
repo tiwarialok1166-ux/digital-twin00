@@ -1,51 +1,54 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.module.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.0/examples/jsm/loaders/GLTFLoader.js';
-
-// Scene setup
-const container = document.getElementById('model-container');
+// Setup 3D Scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf0f0f0);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
 
-const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
-camera.position.set(2, 2, 5);
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById("model-container").appendChild(renderer.domElement);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(container.clientWidth, container.clientHeight);
-container.appendChild(renderer.domElement);
-
-// Light
-const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-light.position.set(0, 20, 0);
+// Lights
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 5, 5).normalize();
 scene.add(light);
 
-// GLTF Model Loader
-const loader = new GLTFLoader();
-loader.load('/static/machine.glb', (gltf) => {
-  scene.add(gltf.scene);
-}, undefined, (error) => {
-  console.error("Error loading GLTF:", error);
+// Load 3D Model
+const loader = new THREE.GLTFLoader();
+loader.load('/static/model.glb', function(gltf) {
+    scene.add(gltf.scene);
+    gltf.scene.scale.set(2, 2, 2);
+    camera.position.z = 5;
+}, undefined, function(error) {
+    console.error("Error loading model:", error);
 });
 
-// Render loop
+// Animate
 function animate() {
-  requestAnimationFrame(animate);
-  renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
 }
 animate();
 
-// Fake sensor data fetch (update dynamically)
-function updateSensorData() {
-  document.getElementById('specs').innerHTML = `
-    <h3>⚙ Machine Specs</h3>
-    <p>Power: 200 kW</p>
-    <p>RPM: 15,000</p>
-  `;
+// Fetch specs.json
+fetch('/static/specs.json')
+    .then(response => response.json())
+    .then(data => {
+        const specsDiv = document.getElementById("specs");
+        specsDiv.innerHTML = "<h3>Machine Specs</h3>";
+        for (let key in data) {
+            specsDiv.innerHTML += `<p><b>${key}:</b> ${data[key]}</p>`;
+        }
+    });
 
-  document.getElementById('sensor-data').innerHTML = `
-    <h3>📊 Live Sensor Data</h3>
-    <p>Temperature: ${(20 + Math.random() * 10).toFixed(1)} °C</p>
-    <p>Vibration: ${(Math.random() * 5).toFixed(2)} mm/s</p>
-    <p>Torque: ${(50 + Math.random() * 20).toFixed(2)} Nm</p>
-  `;
+// Fetch live sensor data every 2 seconds
+function fetchSensorData() {
+    fetch('/api/sensor-data')
+        .then(response => response.json())
+        .then(data => {
+            const sensorDiv = document.getElementById("sensor-data");
+            sensorDiv.innerHTML = "<h3>Live Sensor Data</h3>";
+            for (let key in data) {
+                sensorDiv.innerHTML += `<p><b>${key}:</b> ${data[key]}</p>`;
+            }
+        });
 }
-setInterval(updateSensorData, 2000);
+setInterval(fetchSensorData, 2000);
