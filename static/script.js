@@ -1,55 +1,65 @@
-// Setup 3D Scene
+// ========== 3D MODEL SETUP ==========
+const container = document.getElementById("model-container");
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, container.clientWidth / 400, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
+renderer.setSize(container.clientWidth, 400);
+container.appendChild(renderer.domElement);
 
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.getElementById("model-container").appendChild(renderer.domElement);
-
-// Lights
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5, 5, 5).normalize();
+// Light
+const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
 scene.add(light);
 
-// Load 3D Model
+// Load GLTF Model
 const loader = new THREE.GLTFLoader();
-loader.load('/static/model.glb', function(gltf) {
-    scene.add(gltf.scene);
-    gltf.scene.scale.set(2, 2, 2);
-    camera.position.z = 5;
-}, undefined, function(error) {
-    console.error("Error loading model:", error);
+loader.load("/static/machine.glb", function (gltf) {
+  scene.add(gltf.scene);
+  camera.position.z = 5;
+  animate();
+}, undefined, function (error) {
+  console.error("Error loading 3D model:", error);
 });
 
-// Animate
+// Render loop
 function animate() {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
 }
-animate();
 
-// Fetch specs.json
-fetch('specs.json')
+// ========== FETCH MACHINE SPECS ==========
+fetch("/static/specs.json")
+  .then(response => response.json())
+  .then(data => {
+    let specsHtml = "<ul>";
+    for (let key in data) {
+      specsHtml += `<li><strong>${key}:</strong> ${data[key]}</li>`;
+    }
+    specsHtml += "</ul>";
+    document.getElementById("specs").innerHTML = specsHtml;
+  })
+  .catch(err => {
+    document.getElementById("specs").innerHTML = "❌ Failed to load machine specs.";
+    console.error("Error fetching specs:", err);
+  });
+
+// ========== FETCH LIVE SENSOR DATA ==========
+function fetchSensorData() {
+  fetch("https://dataset1st.onrender.com/dashboard")
     .then(response => response.json())
     .then(data => {
-        const specsDiv = document.getElementById("specs");
-        specsDiv.innerHTML = "<h3>Machine Specs</h3>";
-        for (let key in data) {
-            specsDiv.innerHTML += `<p><b>${key}:</b> ${data[key]}</p>`;
-        }
+      let sensorHtml = "<ul>";
+      for (let key in data) {
+        sensorHtml += `<li><strong>${key}:</strong> ${data[key]}</li>`;
+      }
+      sensorHtml += "</ul>";
+      document.getElementById("sensor-data").innerHTML = sensorHtml;
+    })
+    .catch(err => {
+      document.getElementById("sensor-data").innerHTML = "❌ Failed to load sensor data.";
+      console.error("Error fetching sensor data:", err);
     });
-
-// Fetch live sensor data every 2 seconds
-function fetchSensorData() {
-    fetch('/api/sensor-data')
-        .then(response => response.json())
-        .then(data => {
-            const sensorDiv = document.getElementById("sensor-data");
-            sensorDiv.innerHTML = "<h3>Live Sensor Data</h3>";
-            for (let key in data) {
-                sensorDiv.innerHTML += `<p><b>${key}:</b> ${data[key]}</p>`;
-            }
-        });
 }
-setInterval(fetchSensorData, 2000);
 
+// Fetch sensor data every 3 seconds
+setInterval(fetchSensorData, 3000);
+fetchSensorData(); // Initial call
