@@ -3,5 +3,6 @@ requests
 Flask==3.0.3
 gunicorn
 BeautifulSoup4
+bs4
 
 
