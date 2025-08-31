@@ -29,7 +29,7 @@ function animate() {
 animate();
 
 // Fetch specs.json
-fetch('/static/specs.json')
+fetch('specs.json')
     .then(response => response.json())
     .then(data => {
         const specsDiv = document.getElementById("specs");
@@ -52,3 +52,4 @@ function fetchSensorData() {
         });
 }
 setInterval(fetchSensorData, 2000);
+
