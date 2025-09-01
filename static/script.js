@@ -4,29 +4,31 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/
 
 const scene = new THREE.Scene();
 
+// Camera
 const camera = new THREE.PerspectiveCamera(
-  75,
+  60, // narrower FOV so object looks more natural
   window.innerWidth / window.innerHeight,
   0.1,
-  1000
+  2000
 );
-camera.position.set(2, 2, 2); // not too close, not too far
+camera.position.set(3, 3, 3);
 
+// Renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// Controls
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5, 10, 5);
-scene.add(light);
+// Lights
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.6));
+const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+dirLight.position.set(5, 10, 7.5);
+scene.add(dirLight);
 
-const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambient);
-
-// Load model
+// Load Model
 const loader = new GLTFLoader();
 loader.load(
   './model.glb',
@@ -34,27 +36,33 @@ loader.load(
     const model = gltf.scene;
     scene.add(model);
 
-    // Compute model bounding box
+    // Compute bounding box
     const box = new THREE.Box3().setFromObject(model);
-    const size = box.getSize(new THREE.Vector3()).length();
+    const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
 
-    // Re-center model
-    model.position.x += (model.position.x - center.x);
-    model.position.y += (model.position.y - center.y);
-    model.position.z += (model.position.z - center.z);
+    // Center the model
+    model.position.sub(center);
 
-    // Adjust camera to fit model nicely
-    camera.position.set(size, size, size);
-    controls.target.copy(center);
+    // Adjust camera distance to fit model
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    let cameraZ = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+
+    cameraZ *= 1.5; // add margin
+    camera.position.set(cameraZ, cameraZ, cameraZ);
+    camera.lookAt(0, 0, 0);
+
+    controls.target.set(0, 0, 0);
     controls.update();
   },
   undefined,
   function (error) {
-    console.error(error);
+    console.error("Error loading model:", error);
   }
 );
 
+// Animate
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
@@ -62,6 +70,7 @@ function animate() {
 }
 animate();
 
+// Resize
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
