@@ -79,25 +79,16 @@ async function loadSpecs() {
   try {
     const data = await getJSON("/api/specs");
 
-    // Create table instead of raw JSON
+    // Build HTML table
     let table = document.createElement("table");
-    table.style.borderCollapse = "collapse";
-    table.style.width = "100%";
-    table.style.marginTop = "10px";
-
     for (let key in data) {
       let row = document.createElement("tr");
 
-      let cell1 = document.createElement("td");
+      let cell1 = document.createElement("th");
       cell1.textContent = key;
-      cell1.style.fontWeight = "bold";
-      cell1.style.border = "1px solid #ccc";
-      cell1.style.padding = "6px";
 
       let cell2 = document.createElement("td");
       cell2.textContent = data[key];
-      cell2.style.border = "1px solid #ccc";
-      cell2.style.padding = "6px";
 
       row.appendChild(cell1);
       row.appendChild(cell2);
@@ -105,7 +96,7 @@ async function loadSpecs() {
     }
 
     const specsDiv = document.getElementById("specs");
-    specsDiv.innerHTML = "<h3>📑 Machine Specs</h3>";
+    specsDiv.innerHTML = ""; // clear "Loading..."
     specsDiv.appendChild(table);
 
   } catch (e) {
