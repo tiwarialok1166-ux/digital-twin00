@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Machine Dashboard</title>
 
-  <!-- Use r128 so THREE.GLTFLoader exists on the global THREE object -->
+  <!-- Three.js & loaders -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
   <style>
     :root { --card-bg:#fff; --card-border:#ddd; --bg:#f5f5f7; --text:#111; }
@@ -38,7 +39,7 @@
     </div>
   </div>
 
-  <!-- Your app logic -->
-  <script src="/static/script.js"></script>
+  <!-- App logic -->
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
