@@ -8,7 +8,7 @@
   const width = container.clientWidth || 600;
   const height = container.clientHeight || 520;
   const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
-  camera.position.set(2.5, 1.8, 7);
+  camera.position.set(2.5, 1.8, 50);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: false });
   renderer.setPixelRatio(window.devicePixelRatio || 1);
@@ -99,4 +99,5 @@ async function loadSensors() {
 loadSpecs();
 loadSensors();
 setInterval(loadSensors, 3000); // realtime refresh (no page reload)
+
 
