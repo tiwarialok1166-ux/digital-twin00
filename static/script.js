@@ -42,13 +42,13 @@
         scene.add(root);
 
         // gentle idle rotation
-        function animate() {
-          requestAnimationFrame(animate);
-          root.rotation.y += 0.005;
-          renderer.render(scene, camera);
-        }
-        animate();
-      },
+      //   function animate() {
+      //     requestAnimationFrame(animate);
+      //     root.rotation.y += 0.005;
+      //     renderer.render(scene, camera);
+      //   }
+      //   animate();
+      // },
       undefined,
       () => loadNext(i + 1) // try next path
     );
@@ -99,6 +99,7 @@ async function loadSensors() {
 loadSpecs();
 loadSensors();
 setInterval(loadSensors, 3000); // realtime refresh (no page reload)
+
 
 
 
