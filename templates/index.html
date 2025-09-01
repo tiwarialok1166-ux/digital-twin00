@@ -18,7 +18,9 @@
     .cards{display:flex;flex-direction:column;gap:20px}
     .card{background:var(--card-bg); border:1px solid var(--card-border); border-radius:8px; padding:16px;}
     h2{margin:0 0 12px 0; font-size:20px}
-    pre{margin:0; white-space:pre-wrap; word-wrap:break-word}
+    table{width:100%;border-collapse:collapse;margin:0}
+    td, th{border:1px solid var(--card-border);padding:6px;text-align:left}
+    th{background:#f0f0f0}
     .muted{opacity:0.7}
   </style>
 </head>
@@ -29,7 +31,7 @@
     <div class="cards">
       <div class="card">
         <h2>Machine Specs</h2>
-        <pre id="specs">Loading specs…</pre>
+        <div id="specs">Loading specs…</div>
       </div>
       <div class="card">
         <h2>Sensor Data</h2>
