@@ -4,42 +4,69 @@ from bs4 import BeautifulSoup
 import json
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", template_folder="templates")
 
-# Load machine specs from local JSON file
+LIVE_DASHBOARD_URL = "https://dataset1st.onrender.com/dashboard"
+
+# ---- helpers ----
 def load_specs():
-    try:
-        with open("static/specs.json", "r") as f:
-            return json.load(f)
-    except Exception as e:
-        return {"error": str(e)}
+    """
+    Load machine specs. Prefer repo-root specs.json; fallback to static/specs.json.
+    """
+    candidates = [
+        os.path.join(app.root_path, "specs.json"),
+        os.path.join(app.static_folder, "specs.json"),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                return {"error": f"Failed to read {os.path.basename(path)}: {e}"}
+    return {"error": "specs.json not found (place it at repo root or inside /static)"}
 
-# Scrape sensor data from external HTML table
+
 def fetch_sensor_data():
-    url = "https://dataset1st.onrender.com/dashboard"
+    """
+    Scrape the first HTML table from the external dashboard and return as JSON.
+    """
     try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
+        r = requests.get(LIVE_DASHBOARD_URL, timeout=12)
+        r.raise_for_status()
+        try:
+            soup = BeautifulSoup(r.text, "lxml")
+        except Exception:
+            soup = BeautifulSoup(r.text, "html.parser")
 
         table = soup.find("table")
-        data = []
+        if not table:
+            return {"error": "No <table> found at the live dashboard URL."}
 
-        if table:
-            headers = [th.get_text(strip=True) for th in table.find_all("th")]
-            for row in table.find_all("tr")[1:]:
-                cells = [td.get_text(strip=True) for td in row.find_all("td")]
-                if cells:
-                    data.append(dict(zip(headers, cells)))
+        # headers
+        header_row = table.find("tr")
+        if not header_row:
+            return {"error": "No <tr> found in the table."}
+        headers = [th.get_text(strip=True) for th in header_row.find_all(["th", "td"])]
+
+        data = []
+        for row in table.find_all("tr")[1:]:
+            cells = [td.get_text(strip=True) for td in row.find_all("td")]
+            if cells:
+                # If header count != cell count, zip up to the shorter length
+                n = min(len(headers), len(cells))
+                data.append({headers[i] if i < len(headers) else f"col_{i}": cells[i] for i in range(n)})
         return data
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"Failed to fetch live data: {e}"}
 
+
+# ---- routes ----
 @app.route("/")
-def dashboard():
+def index():
     return render_template("index.html")
 
-@app.route("/api/specs.json")
+@app.route("/api/specs")
 def api_specs():
     return jsonify(load_specs())
 
@@ -47,7 +74,12 @@ def api_specs():
 def api_sensors():
     return jsonify(fetch_sensor_data())
 
+@app.route("/health")
+def health():
+    return {"ok": True}
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
-
-
+    # Render sets $PORT; default to 5000 locally
+    port = int(os.environ.get("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port)
