@@ -78,7 +78,36 @@ async function getJSON(url) {
 async function loadSpecs() {
   try {
     const data = await getJSON("/api/specs");
-    document.getElementById("specs").textContent = JSON.stringify(data, null, 2);
+
+    // Create table instead of raw JSON
+    let table = document.createElement("table");
+    table.style.borderCollapse = "collapse";
+    table.style.width = "100%";
+    table.style.marginTop = "10px";
+
+    for (let key in data) {
+      let row = document.createElement("tr");
+
+      let cell1 = document.createElement("td");
+      cell1.textContent = key;
+      cell1.style.fontWeight = "bold";
+      cell1.style.border = "1px solid #ccc";
+      cell1.style.padding = "6px";
+
+      let cell2 = document.createElement("td");
+      cell2.textContent = data[key];
+      cell2.style.border = "1px solid #ccc";
+      cell2.style.padding = "6px";
+
+      row.appendChild(cell1);
+      row.appendChild(cell2);
+      table.appendChild(row);
+    }
+
+    const specsDiv = document.getElementById("specs");
+    specsDiv.innerHTML = "<h3>📑 Machine Specs</h3>";
+    specsDiv.appendChild(table);
+
   } catch (e) {
     document.getElementById("specs").textContent = `Failed to load specs: ${e.message}`;
     console.error(e);
@@ -99,15 +128,3 @@ async function loadSensors() {
 loadSpecs();
 loadSensors();
 setInterval(loadSensors, 3000); // realtime refresh (no page reload)
-
-
-
-
-
-
-
-
-
-
-
-
