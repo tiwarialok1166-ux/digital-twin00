@@ -93,10 +93,10 @@
     "power_detail": "90.5 ≈ 14.4 * 6.283"
   },
 
-  "assumptions": [
-    "12v_variant_selected_other_voltages_exist",
-    "planetary_gearhead_with_60_to_1_ratio_to_meet_60rpm_at_rated_load",
-    "gear_efficiency_80_percent_typical_for_multi_stage_planetary",
-    "bearings_ip_rating_and_dimensions_inferred_from_vendor_family"
-  ]
+  "assumptions": {
+   "1": "12v_variant_selected_other_voltages_exist",
+    "2": "planetary_gearhead_with_60_to_1_ratio_to_meet_60rpm_at_rated_load",
+    "3": "gear_efficiency_80_percent_typical_for_multi_stage_planetary",
+    "4": "bearings_ip_rating_and_dimensions_inferred_from_vendor_family"
+  }
 }
