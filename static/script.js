@@ -111,40 +111,46 @@
   });
 })();
 
-// ====== API helper ======
+// Utility: fetch JSON
 async function getJSON(url) {
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`${url} -> ${res.status}`);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
-// ====== Render table (flat JSON arrays) ======
-function renderTable(containerId, data) {
+// Utility: render key-value table (handles nested objects)
+function renderKeyValueTable(containerId, obj) {
   const container = document.getElementById(containerId);
-  if (!Array.isArray(data) || data.length === 0) {
+  if (!obj || Object.keys(obj).length === 0) {
     container.textContent = "No data available.";
     return;
   }
-  const table = document.createElement("table");
-  table.className = containerId;
 
-  // header
-  const header = document.createElement("tr");
-  Object.keys(data[0]).forEach((key) => {
+  const table = document.createElement("table");
+  table.className = "specs";
+
+  Object.entries(obj).forEach(([key, val]) => {
+    const tr = document.createElement("tr");
     const th = document.createElement("th");
     th.textContent = key;
-    header.appendChild(th);
-  });
-  table.appendChild(header);
 
-  // rows
-  data.forEach((row) => {
-    const tr = document.createElement("tr");
-    Object.values(row).forEach((val) => {
-      const td = document.createElement("td");
-      td.textContent = typeof val === "object" ? JSON.stringify(val) : val;
-      tr.appendChild(td);
-    });
+    const td = document.createElement("td");
+    if (typeof val === "object" && val !== null) {
+      // render nested objects recursively
+      const subTable = document.createElement("table");
+      subTable.className = "specs";
+      Object.entries(val).forEach(([subKey, subVal]) => {
+        const subTr = document.createElement("tr");
+        subTr.innerHTML = `<th>${subKey}</th><td>${typeof subVal === "object" ? JSON.stringify(subVal) : subVal}</td>`;
+        subTable.appendChild(subTr);
+      });
+      td.appendChild(subTable);
+    } else {
+      td.textContent = val;
+    }
+
+    tr.appendChild(th);
+    tr.appendChild(td);
     table.appendChild(tr);
   });
 
@@ -152,32 +158,65 @@ function renderTable(containerId, data) {
   container.appendChild(table);
 }
 
-// ====== Specs ======
+// -------- specs --------
 async function loadSpecs() {
-  const el = document.getElementById("specs");
   try {
     const data = await getJSON("/api/specs");
-    renderTable("specs", [data.product, data.electrical_specs, data.mechanical_specs, data.performance, data.construction]);
+    renderKeyValueTable("specs", data);
   } catch (e) {
-    el.textContent = `Failed to load specs: ${e.message}`;
+    document.getElementById("specs").textContent = `Failed to load specs: ${e.message}`;
   }
 }
 
-// ====== Sensors ======
+// -------- sensors --------
 async function loadSensors() {
-  const el = document.getElementById("sensors");
-  const statusEl = document.getElementById("sensor-status");
   try {
     const data = await getJSON("/api/sensors");
-    renderTable("sensors", data.rows || data); // support both formats
-    statusEl.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+
+    if (!data) {
+      document.getElementById("sensors").textContent = "No live sensor data available.";
+      return;
+    }
+
+    const rows = Array.isArray(data) ? data : data.rows || [];
+    if (rows.length === 0) {
+      document.getElementById("sensors").textContent = "No sensor rows found.";
+      return;
+    }
+
+    // Render table
+    const container = document.getElementById("sensors");
+    const table = document.createElement("table");
+    table.className = "sensors";
+
+    // header
+    const header = document.createElement("tr");
+    Object.keys(rows[0]).forEach(k => {
+      const th = document.createElement("th");
+      th.textContent = k;
+      header.appendChild(th);
+    });
+    table.appendChild(header);
+
+    // rows
+    rows.forEach(row => {
+      const tr = document.createElement("tr");
+      Object.values(row).forEach(val => {
+        const td = document.createElement("td");
+        td.textContent = typeof val === "object" ? JSON.stringify(val) : val;
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+
+    container.innerHTML = "";
+    container.appendChild(table);
   } catch (e) {
-    el.textContent = `Failed to load sensors: ${e.message}`;
-    statusEl.textContent = "";
+    document.getElementById("sensors").textContent = `Failed to load sensors: ${e.message}`;
   }
 }
 
-// Kick off
+// -------- init --------
 loadSpecs();
 loadSensors();
 setInterval(loadSensors, 3000);
