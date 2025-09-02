@@ -9,7 +9,7 @@ from datetime import datetime
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 # Put your live dashboard link here (as you already have)
-LIVE_DASHBOARD_URL = "https://35.160.120.126"
+LIVE_DASHBOARD_URL = "https://dataset1st.onrender.com/dashboard"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("machine-dashboard")
@@ -127,4 +127,5 @@ if __name__ == "__main__":
     # Render sets $PORT; default to 5000 locally
     port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port, debug=False)
+
 
