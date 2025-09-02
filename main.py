@@ -36,71 +36,42 @@ def load_specs():
 
 
 def fetch_sensor_data():
+   def fetch_sensor_data():
     """
-    Scrape the first (largest) HTML table from the external dashboard and return as JSON.
-    Returns either a list-of-rows (each row is dict) or a dict with 'error' key.
+    Scrape the live dashboard table and extract JSON from the 'Data' column.
+    Returns structured JSON list.
     """
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                      "AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/120.0.0.0 Safari/537.36"
-    }
     try:
-        r = requests.get(LIVE_DASHBOARD_URL, headers=headers, timeout=12)
+        r = requests.get(LIVE_DASHBOARD_URL, timeout=12)
         r.raise_for_status()
-        html = r.text
+        soup = BeautifulSoup(r.text, "lxml")
 
-        # Use lxml if available for faster/more robust parsing
-        try:
-            soup = BeautifulSoup(html, "lxml")
-        except Exception:
-            soup = BeautifulSoup(html, "html.parser")
+        table = soup.find("table")
+        if not table:
+            return {"error": "No <table> found at the live dashboard URL."}
 
-        tables = soup.find_all("table")
-        if not tables:
-            # helpful debug info for troubleshooting
-            snippet = html[:1000].replace("\n", " ")
-            logger.warning("No <table> found at live URL; returning snippet for debugging")
-            return {"error": "No <table> found at the live dashboard URL.", "snippet": snippet}
-
-        # choose the table with the most rows (robust if page has multiple small tables)
-        best_table = max(tables, key=lambda t: len(t.find_all("tr")))
-
-        rows = best_table.find_all("tr")
-        if not rows:
-            return {"error": "No rows found in the selected table."}
-
-        # headers: prefer <th>, fall back to first row's <td>
-        header_cells = rows[0].find_all(["th", "td"])
-        headers_list = [hc.get_text(strip=True) for hc in header_cells] if header_cells else []
-
-        data = []
-        for tr in rows[1:]:
-            cells = tr.find_all("td")
-            if not cells:
-                # sometimes rows without td (e.g., separators) — skip
+        rows = []
+        for row in table.find_all("tr")[1:]:  # skip header
+            cells = row.find_all("td")
+            if len(cells) < 4:
                 continue
-            cell_texts = [td.get_text(strip=True) for td in cells]
-            # build dict with headers (zip to shortest)
-            row_obj = {}
-            for i, text in enumerate(cell_texts):
-                key = headers_list[i] if i < len(headers_list) else f"col_{i}"
-                row_obj[key] = text
-            data.append(row_obj)
 
-        return {
-            "fetched_at": datetime.utcnow().isoformat() + "Z",
-            "source": LIVE_DASHBOARD_URL,
-            "rows": data,
-        }
+            try:
+                data_json = json.loads(cells[3].get_text(strip=True))
+            except Exception:
+                data_json = {"raw": cells[3].get_text(strip=True)}
 
-    except requests.RequestException as e:
-        logger.exception("Requests error while fetching live dashboard")
-        return {"error": f"Failed to fetch live data: {str(e)}"}
+            row_data = {
+                "id": cells[0].get_text(strip=True),
+                "received_at": cells[1].get_text(strip=True),
+                "path": cells[2].get_text(strip=True),
+                **data_json,  # flatten JSON values
+            }
+            rows.append(row_data)
+
+        return rows if rows else {"error": "No sensor rows found."}
     except Exception as e:
-        logger.exception("Unexpected error while fetching live dashboard")
-        return {"error": f"Unexpected error: {str(e)}"}
-
+        return {"error": f"Failed to fetch live data: {e}"}
 
 # ---- routes ----
 @app.route("/")
@@ -127,5 +98,6 @@ if __name__ == "__main__":
     # Render sets $PORT; default to 5000 locally
     port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port, debug=False)
+
 
 
