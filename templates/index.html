@@ -1,67 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Machine Dashboard</title>
+
+  <!-- Use r128 so THREE.GLTFLoader exists on the global THREE object -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; display: flex; gap: 20px; }
-    .section { flex: 1; border: 1px solid #ccc; padding: 10px; border-radius: 8px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background-color: #f2f2f2; }
-    #model-viewer { width: 100%; height: 300px; border: 1px solid #000; }
+    :root { --card-bg:#fff; --card-border:#ddd; --bg:#f5f5f7; --text:#111; --muted:#777; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,Segoe UI,Roboto,Arial}
+    .wrap{display:grid;grid-template-columns: 2fr 1.2fr; gap:20px; padding:16px; min-height:100vh;}
+    #viewer{background:#fff;border:1px solid var(--card-border); border-radius:8px; min-height:520px; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative}
+    .cards{display:flex;flex-direction:column;gap:20px}
+    .card{background:var(--card-bg); border:1px solid var(--card-border); border-radius:8px; padding:16px;}
+    h2{margin:0 0 12px 0; font-size:20px}
+    pre{margin:0; white-space:pre-wrap; word-wrap:break-word}
+    .muted{opacity:0.7}
+    /* tables */
+    table.specs, table.sensors { width:100%; border-collapse:collapse; font-size:13px }
+    table.specs th, table.sensors th { text-align:left; padding:8px; border-bottom:1px solid #eee; vertical-align:top; width:40% }
+    table.specs td, table.sensors td { padding:8px; border-bottom:1px solid #f3f3f3; vertical-align:top }
+    table.sensors thead th { background: #fafafa; border-bottom:2px solid #eee }
+    /* small viewer controls */
+    .viewer-ui { position:absolute; top:10px; right:10px; display:flex; gap:8px; z-index:5 }
+    .viewer-ui button { background:rgba(255,255,255,0.95); border:1px solid #ddd; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:13px }
+    .viewer-ui button:active { transform:translateY(1px) }
+    .status-line { margin-top:8px; color:var(--muted); font-size:13px }
   </style>
 </head>
 <body>
-  <div class="section">
-    <h2>Machine Model</h2>
-    <div id="model-viewer">[3D Model Here]</div>
+  <div class="wrap">
+    <div id="viewer"><span class="muted">Loading 3D model…</span></div>
+
+    <div class="cards">
+      <div class="card">
+        <h2>Machine Specs</h2>
+        <div id="specs">Loading specs…</div>
+      </div>
+      <div class="card">
+        <h2>Sensor Data</h2>
+        <div id="sensors">Loading sensors…</div>
+        <div id="sensor-status" class="status-line"></div>
+      </div>
+    </div>
   </div>
 
-  <div class="section">
-    <h2>Machine Specs</h2>
-    <table id="specs-table">
-      <thead><tr><th>Property</th><th>Value</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <div class="section">
-    <h2>Live Sensor Data</h2>
-    <table id="sensor-table">
-      <thead><tr><th>Time</th><th>Temperature</th><th>Vibration</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <script>
-    async function loadSpecs() {
-      const res = await fetch("/api/specs");
-      const specs = await res.json();
-      const tbody = document.querySelector("#specs-table tbody");
-      tbody.innerHTML = "";
-      for (const [key, value] of Object.entries(specs)) {
-        tbody.innerHTML += `<tr><td>${key}</td><td>${value}</td></tr>`;
-      }
-    }
-
-    async function loadSensors() {
-      const res = await fetch("/api/sensors");
-      const sensors = await res.json();
-      const tbody = document.querySelector("#sensor-table tbody");
-      tbody.innerHTML = "";
-      sensors.forEach(s => {
-        tbody.innerHTML += `<tr>
-          <td>${s.time}</td>
-          <td>${s.temperature}</td>
-          <td>${s.vibration}</td>
-        </tr>`;
-      });
-    }
-
-    loadSpecs();
-    loadSensors();
-    setInterval(loadSensors, 3000);
-  </script>
+  <!-- App logic -->
+  <script src="/static/script.js"></script>
 </body>
 </html>
