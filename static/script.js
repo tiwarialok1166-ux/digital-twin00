@@ -173,14 +173,17 @@ async function loadSensors() {
   try {
     const data = await getJSON("/api/sensors");
 
-    if (!data) {
-      document.getElementById("sensors").textContent = "No live sensor data available.";
+    // Ensure we always work with an array
+    if (!Array.isArray(data)) {
+      document.getElementById("sensors").textContent =
+        "Unexpected response from server.";
+      console.error("API /api/sensors returned:", data);
       return;
     }
 
-    const rows = Array.isArray(data) ? data : data.rows || [];
-    if (rows.length === 0) {
-      document.getElementById("sensors").textContent = "No sensor rows found.";
+    if (data.length === 0) {
+      document.getElementById("sensors").textContent =
+        "No sensor rows found.";
       return;
     }
 
@@ -191,7 +194,7 @@ async function loadSensors() {
 
     // header
     const header = document.createElement("tr");
-    Object.keys(rows[0]).forEach(k => {
+    Object.keys(data[0]).forEach((k) => {
       const th = document.createElement("th");
       th.textContent = k;
       header.appendChild(th);
@@ -199,11 +202,23 @@ async function loadSensors() {
     table.appendChild(header);
 
     // rows
-    rows.forEach(row => {
+    data.forEach((row) => {
       const tr = document.createElement("tr");
-      Object.values(row).forEach(val => {
+      Object.entries(row).forEach(([k, val]) => {
         const td = document.createElement("td");
-        td.textContent = typeof val === "object" ? JSON.stringify(val) : val;
+
+        // Special case: convert timestamp
+        if (k === "ts" && typeof val === "number") {
+          td.textContent = new Date(val * 1000).toLocaleString();
+        } else {
+          td.textContent =
+            val === null || val === undefined
+              ? "-"
+              : typeof val === "object"
+              ? JSON.stringify(val)
+              : val;
+        }
+
         tr.appendChild(td);
       });
       table.appendChild(tr);
@@ -212,7 +227,8 @@ async function loadSensors() {
     container.innerHTML = "";
     container.appendChild(table);
   } catch (e) {
-    document.getElementById("sensors").textContent = `Failed to load sensors: ${e.message}`;
+    document.getElementById("sensors").textContent =
+      `Failed to load sensors: ${e.message}`;
   }
 }
 
