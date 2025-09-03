@@ -11,7 +11,7 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 # Put your live dashboard link here (as you already have)
 def fetch_sensor_data():
     try:
-        r = requests.get(f"{https://dataset1st.onrender.com}/api/sensors", timeout=12)
+        r = requests.get(f"https://dataset1st.onrender.com/api/sensors", timeout=12)
         r.raise_for_status()
         return r.json()
     except Exception as e:
@@ -101,6 +101,7 @@ if __name__ == "__main__":
     # Render sets $PORT; default to 5000 locally
     port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port, debug=False)
+
 
 
 
