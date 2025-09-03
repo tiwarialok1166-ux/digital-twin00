@@ -111,17 +111,23 @@
   });
 })();
 
-// Utility: fetch JSON
+// Utility: fetch JSON (falls back to text if response isn't valid JSON)
 async function getJSON(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  try {
+    return await res.json();
+  } catch {
+    const txt = await res.text();
+    // if backend returned "null" or plain text, pass it up
+    return txt;
+  }
 }
 
 // Utility: render key-value table (handles nested objects)
 function renderKeyValueTable(containerId, obj) {
   const container = document.getElementById(containerId);
-  if (!obj || Object.keys(obj).length === 0) {
+  if (!obj || typeof obj !== "object" || Object.keys(obj).length === 0) {
     container.textContent = "No data available.";
     return;
   }
@@ -135,17 +141,17 @@ function renderKeyValueTable(containerId, obj) {
     th.textContent = key;
 
     const td = document.createElement("td");
-    if (typeof val === "object" && val !== null) {
+    if (val && typeof val === "object") {
       const subTable = document.createElement("table");
       subTable.className = "specs";
       Object.entries(val).forEach(([subKey, subVal]) => {
         const subTr = document.createElement("tr");
-        subTr.innerHTML = `<th>${subKey}</th><td>${typeof subVal === "object" ? JSON.stringify(subVal) : subVal}</td>`;
+        subTr.innerHTML = `<th>${subKey}</th><td>${subVal && typeof subVal === "object" ? JSON.stringify(subVal) : subVal}</td>`;
         subTable.appendChild(subTr);
       });
       td.appendChild(subTable);
     } else {
-      td.textContent = val;
+      td.textContent = val ?? "-";
     }
 
     tr.appendChild(th);
@@ -163,73 +169,122 @@ async function loadSpecs() {
     const data = await getJSON("/api/specs");
     renderKeyValueTable("specs", data);
   } catch (e) {
-    document.getElementById("specs").textContent =
-      `Failed to load specs: ${e.message}`;
+    const el = document.getElementById("specs");
+    if (el) el.textContent = `Failed to load specs: ${e.message}`;
   }
 }
 
-// -------- sensors --------
+/* ---------- SENSOR HELPERS ---------- */
+
+// Normalize whatever the API returns into an array of row objects.
+function normalizeSensorPayload(payload) {
+  if (payload == null) return [];                  // null / undefined
+  if (Array.isArray(payload)) {
+    return payload.filter((row) => row && typeof row === "object");
+  }
+  if (typeof payload === "object") {
+    if (Array.isArray(payload.rows)) {
+      return payload.rows.filter((row) => row && typeof row === "object");
+    }
+    // Single reading object (e.g., from /api/sensors on main.py)
+    if (Object.keys(payload).length > 0) return [payload];
+    return [];
+  }
+  if (typeof payload === "string") {
+    try {
+      const parsed = JSON.parse(payload);
+      return normalizeSensorPayload(parsed);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+// Build a header that is the union of keys across all rows (not just the first).
+function buildHeaderKeys(rows) {
+  const set = new Set();
+  rows.forEach((r) => r && Object.keys(r).forEach((k) => set.add(k)));
+  return Array.from(set);
+}
+
+// Friendly cell formatting (convert ts, stringify objects, handle nulls)
+function formatCell(key, val) {
+  if (key === "ts") {
+    if (typeof val === "number") return new Date(val * 1000).toLocaleString();
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) return d.toLocaleString();
+  }
+  if (val === null || val === undefined) return "-";
+  if (typeof val === "object") return JSON.stringify(val);
+  return String(val);
+}
+
+/* ---------- SENSORS ---------- */
 async function loadSensors() {
+  const container = document.getElementById("sensors");
+  const status = document.getElementById("sensor-status");
+
   try {
-    const data = await getJSON("/api/sensors");
+    const raw = await getJSON("/api/sensors");
 
-    if (!data) {
-      document.getElementById("sensors").textContent =
-        "No data received from server.";
+    // If server gave an explicit error object
+    if (raw && typeof raw === "object" && !Array.isArray(raw) && "error" in raw) {
+      if (container) container.textContent = raw.error || "Sensor API error.";
+      if (status) status.textContent = `Last update failed: ${new Date().toLocaleTimeString()}`;
       return;
     }
 
-    if (!Array.isArray(data)) {
-      document.getElementById("sensors").textContent =
-        (data && data.error) ? data.error : "Unexpected sensor response.";
-      console.error("API /api/sensors returned:", data);
+    const rows = normalizeSensorPayload(raw);
+
+    if (!rows.length) {
+      if (container) container.textContent = "No sensor data available.";
+      if (status) status.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
       return;
     }
 
-    if (data.length === 0) {
-      document.getElementById("sensors").textContent =
-        "No sensor rows found.";
+    // Optional: sort newest-first if ts is present
+    rows.sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0));
+
+    const keys = buildHeaderKeys(rows);
+    if (!keys.length) {
+      if (container) container.textContent = "No renderable fields in sensor data.";
+      if (status) status.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
       return;
     }
 
-    const container = document.getElementById("sensors");
+    // Build table
     const table = document.createElement("table");
     table.className = "sensors";
 
     const header = document.createElement("tr");
-    Object.keys(data[0]).forEach((k) => {
+    keys.forEach((k) => {
       const th = document.createElement("th");
       th.textContent = k;
       header.appendChild(th);
     });
     table.appendChild(header);
 
-    data.forEach((row) => {
+    rows.forEach((row) => {
       const tr = document.createElement("tr");
-      Object.entries(row).forEach(([k, val]) => {
+      keys.forEach((k) => {
         const td = document.createElement("td");
-
-        if (k === "ts" && typeof val === "number") {
-          td.textContent = new Date(val * 1000).toLocaleString();
-        } else {
-          td.textContent =
-            val === null || val === undefined
-              ? "-"
-              : typeof val === "object"
-              ? JSON.stringify(val)
-              : val;
-        }
-
+        td.textContent = formatCell(k, row?.[k]);
         tr.appendChild(td);
       });
       table.appendChild(tr);
     });
 
-    container.innerHTML = "";
-    container.appendChild(table);
+    if (container) {
+      container.innerHTML = "";
+      container.appendChild(table);
+    }
+    if (status) status.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
   } catch (e) {
-    document.getElementById("sensors").textContent =
-      `Failed to load sensors: ${e.message}`;
+    const message = `Failed to load sensors: ${e.message}`;
+    if (container) container.textContent = message;
+    if (status) status.textContent = `Last update failed: ${new Date().toLocaleTimeString()}`;
+    console.error(message);
   }
 }
 
