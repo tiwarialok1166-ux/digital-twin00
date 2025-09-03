@@ -1,76 +1,56 @@
+# app.py
 from flask import Flask, render_template, jsonify
-import requests
-from bs4 import BeautifulSoup
-import json
-import os
-import logging
-from datetime import datetime
+import requests, os, json, logging
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("dashboard")
 
-# Put your live dashboard link here (as you already have) 
-LIVE_DASHBOARD_URL = "https://dataset1st.onrender.com" 
-logging.basicConfig(level=logging.INFO) 
-logger = logging.getLogger("machine-dashboard")
-# ---- helpers ----
+LIVE_DASHBOARD_URL = os.getenv("LIVE_DASHBOARD_URL", "http://localhost:5000").rstrip("/")
+
+
 def load_specs():
-    """
-    Load machine specs. Prefer repo-root specs.json; fallback to static/specs.json.
-    """
-    candidates = [
-        os.path.join(app.root_path, "specs.json"),
-        os.path.join(app.static_folder, "specs.json"),
-    ]
+    candidates = [os.path.join(app.root_path, "specs.json"), os.path.join(app.static_folder, "specs.json")]
     for path in candidates:
         if os.path.exists(path):
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     return json.load(f)
             except Exception as e:
-                logger.exception("Failed reading specs.json")
-                return {"error": f"Failed to read {os.path.basename(path)}: {e}"}
-    return {"error": "specs.json not found (place it at repo root or inside /static)"}
+                logger.exception("Failed reading specs.json: %s", e)
+                return {"error": f"Failed to read specs.json: {e}"}
+    return {"error": "specs.json not found (place at repo root or inside /static)"}
 
 
 def fetch_sensor_data():
-   def fetch_sensor_data():
-    """
-    Scrape the live dashboard table and extract JSON from the 'Data' column.
-    Returns structured JSON list.
-    """
+    url = f"{LIVE_DASHBOARD_URL}/api/data"
     try:
-        r = requests.get(LIVE_DASHBOARD_URL, timeout=12)
+        r = requests.get(url, timeout=12)
         r.raise_for_status()
-        soup = BeautifulSoup(r.text, "lxml")
-
-        table = soup.find("table")
-        if not table:
-            return {"error": "No <table> found at the live dashboard URL."}
-
-        rows = []
-        for row in table.find_all("tr")[1:]:  # skip header
-            cells = row.find_all("td")
-            if len(cells) < 4:
-                continue
-
-            try:
-                data_json = json.loads(cells[3].get_text(strip=True))
-            except Exception:
-                data_json = {"raw": cells[3].get_text(strip=True)}
-
-            row_data = {
-                "id": cells[0].get_text(strip=True),
-                "received_at": cells[1].get_text(strip=True),
-                "path": cells[2].get_text(strip=True),
-                **data_json,  # flatten JSON values
-            }
-            rows.append(row_data)
-
-        return rows if rows else {"error": "No sensor rows found."}
+        data = r.json()
+        # Normalize: always return list
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            if "error" in data:
+                # pass error object so front-end can show message
+                return {"error": data.get("error")}
+            return [data]
+        # Unexpected / plain string
+        try:
+            parsed = json.loads(data)
+            if isinstance(parsed, list):
+                return parsed
+            if isinstance(parsed, dict):
+                return [parsed]
+        except Exception:
+            pass
+        return []
     except Exception as e:
+        logger.exception("Failed to fetch data from %s: %s", url, e)
         return {"error": f"Failed to fetch live data: {e}"}
 
-# ---- routes ----
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -88,18 +68,9 @@ def api_sensors():
 
 @app.route("/health")
 def health():
-    return {"ok": True}
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":
-    # Render sets $PORT; default to 5000 locally
-    port = int(os.environ.get("PORT", "5000"))
+    port = int(os.environ.get("PORT", "5001"))
     app.run(host="0.0.0.0", port=port, debug=False)
-
-
-
-
-
-
-
-
