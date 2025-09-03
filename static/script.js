@@ -136,7 +136,6 @@ function renderKeyValueTable(containerId, obj) {
 
     const td = document.createElement("td");
     if (typeof val === "object" && val !== null) {
-      // render nested objects recursively
       const subTable = document.createElement("table");
       subTable.className = "specs";
       Object.entries(val).forEach(([subKey, subVal]) => {
@@ -164,7 +163,8 @@ async function loadSpecs() {
     const data = await getJSON("/api/specs");
     renderKeyValueTable("specs", data);
   } catch (e) {
-    document.getElementById("specs").textContent = `Failed to load specs: ${e.message}`;
+    document.getElementById("specs").textContent =
+      `Failed to load specs: ${e.message}`;
   }
 }
 
@@ -173,10 +173,15 @@ async function loadSensors() {
   try {
     const data = await getJSON("/api/sensors");
 
-    // Ensure we always work with an array
+    if (!data) {
+      document.getElementById("sensors").textContent =
+        "No data received from server.";
+      return;
+    }
+
     if (!Array.isArray(data)) {
       document.getElementById("sensors").textContent =
-        "Unexpected response from server.";
+        (data && data.error) ? data.error : "Unexpected sensor response.";
       console.error("API /api/sensors returned:", data);
       return;
     }
@@ -187,12 +192,10 @@ async function loadSensors() {
       return;
     }
 
-    // Render table
     const container = document.getElementById("sensors");
     const table = document.createElement("table");
     table.className = "sensors";
 
-    // header
     const header = document.createElement("tr");
     Object.keys(data[0]).forEach((k) => {
       const th = document.createElement("th");
@@ -201,13 +204,11 @@ async function loadSensors() {
     });
     table.appendChild(header);
 
-    // rows
     data.forEach((row) => {
       const tr = document.createElement("tr");
       Object.entries(row).forEach(([k, val]) => {
         const td = document.createElement("td");
 
-        // Special case: convert timestamp
         if (k === "ts" && typeof val === "number") {
           td.textContent = new Date(val * 1000).toLocaleString();
         } else {
