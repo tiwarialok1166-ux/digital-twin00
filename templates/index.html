@@ -60,16 +60,17 @@
     // -------- Render JSON as table --------
     function renderTable(containerId, data) {
       const container = document.getElementById(containerId);
-      if (!Array.isArray(data) && typeof data === "object") {
-        data = [data];
+
+      if (!Array.isArray(data)) {
+        container.textContent = "No valid data.";
+        return;
       }
-      if (!Array.isArray(data) || data.length === 0) {
+      if (data.length === 0) {
         container.textContent = "No data.";
         return;
       }
-      const table = document.createElement("table");
 
-      // header
+      const table = document.createElement("table");
       const header = document.createElement("tr");
       Object.keys(data[0]).forEach((key) => {
         const th = document.createElement("th");
@@ -78,12 +79,16 @@
       });
       table.appendChild(header);
 
-      // rows
       data.forEach((row) => {
         const tr = document.createElement("tr");
         Object.values(row).forEach((val) => {
           const td = document.createElement("td");
-          td.textContent = typeof val === "object" ? JSON.stringify(val) : val;
+          td.textContent =
+            val === null || val === undefined
+              ? "-"
+              : typeof val === "object"
+              ? JSON.stringify(val)
+              : val;
           tr.appendChild(td);
         });
         table.appendChild(tr);
@@ -97,9 +102,17 @@
     async function loadSpecs() {
       try {
         const data = await getJSON("/api/specs");
-        renderTable("specs", [data.product, data.electrical_specs, data.mechanical_specs, data.performance, data.construction]);
+        const sections = [
+          data.product,
+          data.electrical_specs,
+          data.mechanical_specs,
+          data.performance,
+          data.construction,
+        ].filter(Boolean); // skip undefined/null
+        renderTable("specs", sections);
       } catch (e) {
-        document.getElementById("specs").textContent = `Failed to load specs: ${e.message}`;
+        document.getElementById("specs").textContent =
+          `Failed to load specs: ${e.message}`;
       }
     }
 
@@ -107,16 +120,25 @@
     async function loadSensors() {
       try {
         const data = await getJSON("/api/sensors");
+
+        if (!Array.isArray(data)) {
+          document.getElementById("sensors").textContent =
+            data.error || "Unexpected sensor response.";
+          return;
+        }
+
         renderTable("sensors", data);
-        document.getElementById("sensor-status").textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+        document.getElementById("sensor-status").textContent =
+          `Last update: ${new Date().toLocaleTimeString()}`;
       } catch (e) {
-        document.getElementById("sensors").textContent = `Failed to load sensors: ${e.message}`;
+        document.getElementById("sensors").textContent =
+          `Failed to load sensors: ${e.message}`;
       }
     }
 
     loadSpecs();
     loadSensors();
-    setInterval(loadSensors, 3000); // refresh sensors every 3s
+    setInterval(loadSensors, 3000);
   </script>
 
   <!-- 3D viewer logic is in /static/script.js -->
